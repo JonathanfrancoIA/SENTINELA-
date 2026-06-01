@@ -34,6 +34,7 @@ src/pipeline_dados/data/
 # Variáveis de ambiente
 .env
 .env.local
+.env.example
 *.env
 
 # Outputs gerados
