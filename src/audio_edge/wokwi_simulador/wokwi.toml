@@ -1,0 +1,8 @@
+# Configuração para a extensão Wokwi do VS Code (opcional).
+# Para usar no site wokwi.com, basta criar um projeto ESP32 e colar
+# sketch.ino + diagram.json — não é necessário este arquivo.
+[wokwi]
+version = 1
+# Caminho do firmware compilado (gerado pelo Arduino CLI / PlatformIO):
+# firmware = '.pio/build/esp32dev/firmware.bin'
+# elf = '.pio/build/esp32dev/firmware.elf'

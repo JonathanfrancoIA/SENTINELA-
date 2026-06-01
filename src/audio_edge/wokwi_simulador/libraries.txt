@@ -1,0 +1,5 @@
+# Bibliotecas usadas pelo simulador Wokwi (instaladas automaticamente)
+PubSubClient
+ArduinoJson
+Adafruit GFX Library
+Adafruit SSD1306

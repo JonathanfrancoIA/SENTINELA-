@@ -1,0 +1,287 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Description: |
+  SENTINELA — Motor de Fusão Serverless
+  Detecta desmatamento ilegal na Amazônia cruzando alertas de áudio (ESP32)
+  com alertas visuais do INPE/DETER (Sentinel-2).
+  FIAP Global Solution 2026.1 — Economia Espacial
+
+# ─────────────────────────────────────────────────────────────
+# Parâmetros
+# ─────────────────────────────────────────────────────────────
+Parameters:
+  Ambiente:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+    Description: Ambiente de deploy
+
+  RaioFusaoKm:
+    Type: Number
+    Default: 10
+    Description: Raio máximo de associação áudio-satélite (km)
+
+  JanelaDias:
+    Type: Number
+    Default: 7
+    Description: Janela temporal máxima para fusão (dias)
+
+  ConfMinimaAlerta:
+    Type: Number
+    Default: 0.65
+    Description: Confiança mínima para gerar alerta de fusão
+
+# ─────────────────────────────────────────────────────────────
+# Variáveis globais
+# ─────────────────────────────────────────────────────────────
+Globals:
+  Function:
+    Runtime: python3.11
+    MemorySize: 256
+    Timeout: 30
+    Environment:
+      Variables:
+        RAIO_FUSAO_KM: !Ref RaioFusaoKm
+        JANELA_DIAS: !Ref JanelaDias
+        CONF_MINIMA_ALERTA: !Ref ConfMinimaAlerta
+        AMBIENTE: !Ref Ambiente
+        DB_TABLE_ALERTAS: !Sub "sentinela-alertas-${Ambiente}"
+        SNS_TOPIC_ARN: !Ref TopicAlertas
+
+# ─────────────────────────────────────────────────────────────
+# Recursos
+# ─────────────────────────────────────────────────────────────
+Resources:
+
+  # ── API Gateway ─────────────────────────────────────────────
+  SentinelaApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub "sentinela-api-${Ambiente}"
+      StageName: !Ref Ambiente
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+        AllowOrigin: "'*'"
+      Auth:
+        DefaultAuthorizer: NONE
+      Tags:
+        Projeto: SENTINELA
+        Ambiente: !Ref Ambiente
+
+  # ── Lambda: Motor de Fusão ───────────────────────────────────
+  FuncaoFusao:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "sentinela-fusao-${Ambiente}"
+      CodeUri: src/cloud_aws/
+      Handler: handler.handler
+      Description: "Motor de fusão: cruza alertas de áudio (ESP32) com DETER/Sentinel-2"
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TabelaAlertas
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt TopicAlertas.TopicName
+        - S3ReadPolicy:
+            BucketName: !Ref BucketDados
+      Events:
+        # Recebe eventos de áudio via API Gateway
+        PostFusao:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SentinelaApi
+            Path: /fusao
+            Method: POST
+        # Endpoint de status
+        GetStatus:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SentinelaApi
+            Path: /status
+            Method: GET
+        # Lista alertas gerados
+        GetAlertas:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SentinelaApi
+            Path: /alertas
+            Method: GET
+        # Acionado por fila SQS (eventos MQTT do IoT Core)
+        FilaAudio:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt FilaEventosAudio.Arn
+            BatchSize: 10
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
+      Tags:
+        Projeto: SENTINELA
+
+  # ── Lambda: Ingestão DETER (agendada) ───────────────────────
+  FuncaoIngestDeter:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "sentinela-ingest-deter-${Ambiente}"
+      CodeUri: src/pipeline_dados/
+      Handler: ingest_deter.handler_lambda
+      Description: "Ingere alertas do INPE/DETER diariamente"
+      Timeout: 300
+      MemorySize: 512
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TabelaAlertas
+        - S3WritePolicy:
+            BucketName: !Ref BucketDados
+      Events:
+        AgendamentoDiario:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 8 * * ? *)   # Todos os dias às 8h UTC (5h Brasília)
+            Name: !Sub "sentinela-deter-diario-${Ambiente}"
+            Description: "Ingestão diária de alertas DETER"
+            Enabled: true
+      Tags:
+        Projeto: SENTINELA
+
+  # ── DynamoDB: Alertas ────────────────────────────────────────
+  TabelaAlertas:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "sentinela-alertas-${Ambiente}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: fusao_id
+          AttributeType: S
+        - AttributeName: criado_em
+          AttributeType: S
+        - AttributeName: estado
+          AttributeType: S
+      KeySchema:
+        - AttributeName: fusao_id
+          KeyType: HASH
+        - AttributeName: criado_em
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: estado-index
+          KeySchema:
+            - AttributeName: estado
+              KeyType: HASH
+            - AttributeName: criado_em
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - Key: Projeto
+          Value: SENTINELA
+
+  # ── S3: Dados brutos ─────────────────────────────────────────
+  BucketDados:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "sentinela-dados-${Ambiente}-${AWS::AccountId}"
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: ArquivamentoAntigos
+            Status: Enabled
+            Transitions:
+              - TransitionInDays: 90
+                StorageClass: STANDARD_IA
+              - TransitionInDays: 365
+                StorageClass: GLACIER
+      Tags:
+        - Key: Projeto
+          Value: SENTINELA
+
+  # ── SNS: Notificações ────────────────────────────────────────
+  TopicAlertas:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "sentinela-alertas-${Ambiente}"
+      Subscription:
+        # Adicione e-mails reais aqui
+        - Protocol: email
+          Endpoint: alertas@sentinela.fiap.br
+
+  # ── SQS: Fila de eventos de áudio ────────────────────────────
+  FilaEventosAudio:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "sentinela-audio-${Ambiente}"
+      VisibilityTimeout: 60
+      MessageRetentionPeriod: 86400   # 24h
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt FilaAudioDLQ.Arn
+        maxReceiveCount: 3
+
+  FilaAudioDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "sentinela-audio-dlq-${Ambiente}"
+      MessageRetentionPeriod: 604800  # 7 dias
+
+  # ── CloudWatch: Dashboard de monitoramento ───────────────────
+  DashboardCloudWatch:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub "SENTINELA-${Ambiente}"
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "metric",
+              "properties": {
+                "title": "Invocações Lambda - Motor de Fusão",
+                "metrics": [
+                  ["AWS/Lambda", "Invocations", "FunctionName", "sentinela-fusao-${Ambiente}"],
+                  ["AWS/Lambda", "Errors", "FunctionName", "sentinela-fusao-${Ambiente}"]
+                ],
+                "period": 300,
+                "stat": "Sum"
+              }
+            },
+            {
+              "type": "metric",
+              "properties": {
+                "title": "Mensagens SQS - Eventos de Áudio",
+                "metrics": [
+                  ["AWS/SQS", "NumberOfMessagesSent", "QueueName", "sentinela-audio-${Ambiente}"],
+                  ["AWS/SQS", "NumberOfMessagesReceived", "QueueName", "sentinela-audio-${Ambiente}"]
+                ],
+                "period": 60,
+                "stat": "Sum"
+              }
+            }
+          ]
+        }
+
+# ─────────────────────────────────────────────────────────────
+# Outputs
+# ─────────────────────────────────────────────────────────────
+Outputs:
+  ApiUrl:
+    Description: "URL da API do Motor de Fusão"
+    Value: !Sub "https://${SentinelaApi}.execute-api.${AWS::Region}.amazonaws.com/${Ambiente}"
+    Export:
+      Name: !Sub "SentinelaApiUrl-${Ambiente}"
+
+  FuncaoFusaoArn:
+    Description: "ARN da Lambda do Motor de Fusão"
+    Value: !GetAtt FuncaoFusao.Arn
+
+  TabelaAlertasArn:
+    Description: "ARN da tabela DynamoDB de alertas"
+    Value: !GetAtt TabelaAlertas.Arn
+
+  TopicAlertasArn:
+    Description: "ARN do tópico SNS para notificações"
+    Value: !Ref TopicAlertas
+
+  BucketDadosNome:
+    Description: "Nome do bucket S3 de dados"
+    Value: !Ref BucketDados

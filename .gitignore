@@ -1,0 +1,74 @@
+# ─────────────────────────────────────────────────────────────
+# SENTINELA — .gitignore
+# ─────────────────────────────────────────────────────────────
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Dados e modelos (não versionar arquivos grandes)
+src/audio_edge/models/
+src/audio_edge/data/
+src/visao_computacional/output/
+src/pipeline_dados/data/
+*.tflite
+*.h5
+*.keras
+*.onnx
+
+# Banco de dados local
+*.db
+*.sqlite
+*.sqlite3
+
+# Variáveis de ambiente
+.env
+.env.local
+*.env
+
+# Outputs gerados
+*.geojson
+output/
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Streamlit
+.streamlit/secrets.toml
+
+# AWS
+.aws/
+*.pem
+samconfig.toml
+.aws-sam/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Cobertura de testes
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Temporários
+tmp/
+temp/
+*.tmp
+*.bak

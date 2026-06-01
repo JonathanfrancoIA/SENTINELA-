@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "author": "SENTINELA — FIAP GS 2026.1",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-devkit-c-v4",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "board-ssd1306",
+      "id": "oled",
+      "top": -160,
+      "left": 180,
+      "attrs": { "i2cAddress": "0x3c" }
+    },
+    {
+      "type": "wokwi-potentiometer",
+      "id": "pot",
+      "top": 160,
+      "left": -180,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn",
+      "top": 200,
+      "left": 180,
+      "attrs": { "color": "red", "label": "MOTOSSERRA" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_g",
+      "top": 110,
+      "left": 220,
+      "attrs": { "color": "green" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_y",
+      "top": 110,
+      "left": 280,
+      "attrs": { "color": "yellow" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_r",
+      "top": 110,
+      "left": 340,
+      "attrs": { "color": "red" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r_g",
+      "top": 160,
+      "left": 220,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r_y",
+      "top": 160,
+      "left": 280,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r_r",
+      "top": 160,
+      "left": 340,
+      "attrs": { "value": "220" }
+    }
+  ],
+  "connections": [
+    [ "esp:3V3", "oled:VCC", "red", [] ],
+    [ "esp:GND.1", "oled:GND", "black", [] ],
+    [ "esp:21", "oled:SDA", "green", [] ],
+    [ "esp:22", "oled:SCL", "yellow", [] ],
+
+    [ "esp:3V3", "pot:VCC", "red", [] ],
+    [ "esp:GND.2", "pot:GND", "black", [] ],
+    [ "esp:34", "pot:SIG", "purple", [] ],
+
+    [ "esp:4", "btn:1.l", "blue", [] ],
+    [ "btn:2.l", "esp:GND.3", "black", [] ],
+
+    [ "esp:25", "r_g:1", "green", [] ],
+    [ "r_g:2", "led_g:A", "green", [] ],
+    [ "led_g:C", "esp:GND.1", "black", [] ],
+
+    [ "esp:26", "r_y:1", "yellow", [] ],
+    [ "r_y:2", "led_y:A", "yellow", [] ],
+    [ "led_y:C", "esp:GND.2", "black", [] ],
+
+    [ "esp:27", "r_r:1", "red", [] ],
+    [ "r_r:2", "led_r:A", "red", [] ],
+    [ "led_r:C", "esp:GND.3", "black", [] ]
+  ],
+  "dependencies": {}
+}
