@@ -20,26 +20,15 @@
 ---
 
 ## Nome do grupo
-**\<INSERIR NOME DO GRUPO\>**
+**SENTINELA**
 
 ---
 
 ## 👨‍🎓 Integrantes
-- Jhon \<sobrenome\> — RM \<número\>
-- \<Integrante 2\> — RM \<número\>
-- \<Integrante 3\> — RM \<número\>
-- \<Integrante 4\> — RM \<número\>
-- \<Integrante 5\> — RM \<número\>
-
-> Grupos de 3 a 5 integrantes. Remova as linhas que não usar.
-
----
-
-## 👩‍🏫 Professores
-### Tutor(a)
-- \<Nome do tutor(a)\>
-### Coordenador(a)
-- \<Nome do coordenador(a)\>
+- Bruno de Souza Leite — RM567213
+- Jonathan Gomes Ribeiro Franco — RM567109
+- Marina Clara Constantino Ribeiro — RM568576
+- Yasmin Kauane Silva Lima — RM566645
 
 ---
 
@@ -116,7 +105,7 @@ SENTINELA/
 │   ├── audio_edge/          # 👂 classificador de motosserra + firmware ESP32
 │   │   ├── README.md
 │   │   ├── treinar_audio.py       # treino com ESC-50 → TFLite INT8
-│   │   └── sentinela_esp32.ino    # firmware (mic I2S + TFLite Micro + MQTT)
+│   │   └── sentinela_esp32/        # firmware ESP32 (.ino) + wokwi_simulador/
 │   │
 │   ├── visao_computacional/ # 👁️ segmentação/detecção de desmatamento (Sentinel-2)
 │   │   ├── README.md
@@ -197,7 +186,7 @@ python handler.py testar
 
 ### 6. Firmware ESP32
 ```
-1. Abrir src/audio_edge/sentinela_esp32.ino na Arduino IDE
+1. Abrir src/audio_edge/sentinela_esp32/sentinela_esp32.ino na Arduino IDE
 2. Configurar WIFI_SSID, WIFI_PASSWORD e MQTT_SERVER no .ino
 3. Gerar header do modelo: xxd -i models/sentinela_audio.tflite > sentinela_audio_model.h
 4. Incluir e gravar na placa ESP32
@@ -255,15 +244,15 @@ python handler.py testar
 ---
 
 ## 🎥 Vídeo demonstrativo
-\<LINK DO YOUTUBE (não listado)\>
+📺 **[Assista no YouTube (não listado)](https://youtu.be/BlPoCsdbtlA)**
 
 ---
 
 ## 🗃 Histórico de lançamentos
 - **0.1.0** — 2026-05-29 — Estrutura inicial, pipeline DETER e dashboard base
 - **0.2.0** — 2026-05-30 — Classificador de áudio (motosserra) + firmware ESP32 + motor de fusão
-- **0.3.0** — \<data\> — Integração com dados DETER reais + visão computacional com GeoTIFF real
-- **1.0.0** — \<data\> — POC integrada, vídeo demonstrativo e hardware físico
+- **0.3.0** — 2026-06-09 — Integração com dados DETER reais + visão computacional com GeoTIFF real
+- **1.0.0** — 2026-06-09 — POC integrada, vídeo demonstrativo e ESP32 no simulador (Wokwi)
 
 ---
 

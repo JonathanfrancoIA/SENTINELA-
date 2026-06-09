@@ -31,6 +31,10 @@ import plotly.graph_objects as go
 import folium
 from folium.plugins import MarkerCluster, HeatMap, MiniMap
 from streamlit_folium import st_folium
+try:
+    from streamlit_autorefresh import st_autorefresh
+except Exception:
+    st_autorefresh = None
 
 # ─────────────────────────────────────────────────────────────
 # Configuração da página
@@ -430,6 +434,9 @@ def renderizar_sidebar(df_sensores, df_fusoes):
         </div>
         """, unsafe_allow_html=True)
 
+        st.checkbox("🔄 Atualização automática (5s)", value=True, key="auto_refresh",
+                    help="Mostra alertas novos do ESP32 ao vivo, sem apertar F5.")
+
         st.markdown("### 🗺️ Camadas do Mapa")
         mostrar_deter    = st.checkbox("👁️ Alertas DETER (satélite)", value=True)
         mostrar_sensores = st.checkbox("👂 Sensores ESP32", value=True)
@@ -541,7 +548,7 @@ def plot_area_por_estado(df_deter):
 def plot_audio_timeline(df_eventos):
     """Probabilidade dos eventos de áudio ao longo do tempo."""
     df = df_eventos.copy()
-    df["hora"] = pd.to_datetime(df["timestamp"]).dt.floor("6H")
+    df["hora"] = pd.to_datetime(df["timestamp"]).dt.floor("6h")
     df_agg = df.groupby(["hora", "nivel"])["prob"].mean().reset_index()
 
     fig = px.scatter(
@@ -613,9 +620,9 @@ def carregar_eventos_reais(db_path: str = str(DB_REAL)):
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
         cur = conn.execute(
-            "SELECT id, sensor_id, tipo_evento, probabilidade, lat, lon, "
-            "timestamp_ms, nivel_alerta, criado_em "
-            "FROM eventos_audio ORDER BY id DESC LIMIT 200"
+            "SELECT rowid AS id, sensor_id, tipo_evento, probabilidade, lat, lon, "
+            "timestamp_ms, nivel_alerta "
+            "FROM eventos_audio ORDER BY rowid DESC LIMIT 200"
         )
         linhas = [dict(r) for r in cur.fetchall()]
         conn.close()
@@ -625,13 +632,12 @@ def carregar_eventos_reais(db_path: str = str(DB_REAL)):
 
 
 def _ts_real(linha):
-    v = linha.get("criado_em")
-    if v:
-        try:
-            return datetime.fromisoformat(str(v).replace("T", " ")[:19])
-        except Exception:
-            pass
-    return datetime.now()
+    # timestamp_ms já vem em epoch-ms (o assinante grava o tempo real do evento).
+    v = linha.get("timestamp_ms")
+    try:
+        return datetime.fromtimestamp(int(v) / 1000)
+    except Exception:
+        return datetime.now()
 
 
 def mesclar_eventos_reais(df_deter, df_sensores, df_eventos, df_fusoes):
@@ -704,6 +710,11 @@ def mesclar_eventos_reais(df_deter, df_sensores, df_eventos, df_fusoes):
 # App principal
 # ─────────────────────────────────────────────────────────────
 def main():
+    # Auto-refresh: mostra alertas do ESP32 ao vivo, sem apertar F5
+    # (controlado pelo toggle na sidebar; ativo por padrão).
+    if st_autorefresh and st.session_state.get("auto_refresh", True):
+        st_autorefresh(interval=5000, key="sentinela_live")
+
     # Carrega dados (simulados) e mescla os eventos REAIS do ESP32 (MQTT → SQLite)
     df_deter, df_sensores, df_eventos, df_fusoes = gerar_dados()
     df_deter, df_sensores, df_eventos, df_fusoes, n_reais = \

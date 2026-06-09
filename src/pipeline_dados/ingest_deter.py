@@ -52,7 +52,7 @@ DB_PATH = Path("data/sentinela.db")
 # Endpoint OWS/WFS do GeoServer do TerraBrasilis e camada pública do DETER
 # para a Amazônia Legal. A requisição GetFeature devolve GeoJSON diretamente.
 DETER_WFS_URL = "https://terrabrasilis.dpi.inpe.br/geoserver/deter-amz/wfs"
-DETER_LAYER = "deter-amz:deter_public"
+DETER_LAYER = "deter-amz:deter_amz"
 # (Legado) ZIP estático — mantido apenas como referência histórica.
 DETER_URL = "http://terrabrasilis.dpi.inpe.br/downloads/DETER-B.zip"
 

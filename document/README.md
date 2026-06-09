@@ -7,18 +7,22 @@ Este diretório contém a documentação formal da POC SENTINELA para a FIAP Glo
 | Arquivo | Descrição |
 |---------|-----------|
 | `README.md` | Este arquivo |
-| `SENTINELA-GS-2026.pdf` | PDF único de entrega *(a ser gerado)* |
+| `gerar_pdf.py` | Gera o PDF de entrega a partir do código/métricas (reprodutível) |
+| `SENTINELA-GS-2026.pdf` | **PDF único de entrega (gerado)** — 11 páginas |
 
 ## Checklist de Entrega
 
 - [x] Repositório GitHub público com estrutura de pastas
-- [x] README raiz completo
+- [x] README raiz completo (integrantes + RM preenchidos)
 - [x] README em cada subpasta de `src/`
 - [x] Código-fonte comentado em português
 - [x] `requirements.txt` atualizado
-- [ ] PDF com relatório técnico (gerar com base neste README)
-- [ ] Vídeo demonstrativo (YouTube, não listado)
-- [ ] Diagrama de arquitetura (adicionar em `assets/`)
+- [x] PDF com relatório técnico (`SENTINELA-GS-2026.pdf`, via `gerar_pdf.py`)
+- [x] Diagrama de arquitetura (`assets/diagrama_arquitetura.png`)
+- [x] Fluxograma da solução (`assets/fluxograma.png`, via `gerar_fluxograma.py`)
+- [ ] Vídeo demonstrativo (YouTube, não listado) — gravar e colar o link
+- [ ] Preencher link do vídeo no PDF (`VIDEO_URL` em `gerar_pdf.py`) e no README raiz
+- [ ] Preencher professores (tutor/coordenador) no README raiz
 
 ## Como gerar o PDF
 

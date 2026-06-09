@@ -56,7 +56,7 @@ switch ($Comando) {
         Write-Header "Executando pipeline de dados (INPE/DETER)..."
         Test-Python
         Push-Location src\pipeline_dados
-        python ingest_deter.py --exportar-json
+        python ingest_deter.py --fonte real --exportar-json
         Pop-Location
         Write-OK "Pipeline concluido! Banco em src/pipeline_dados/data/sentinela.db"
     }
@@ -69,7 +69,7 @@ switch ($Comando) {
         if (-not (Test-Path "src\pipeline_dados\data\sentinela.db")) {
             Write-Warn "Banco nao encontrado - rodando pipeline primeiro..."
             Push-Location src\pipeline_dados
-            python ingest_deter.py | Out-Null
+            python ingest_deter.py --fonte real | Out-Null
             Pop-Location
         }
 
@@ -107,7 +107,7 @@ switch ($Comando) {
         if (-not (Test-Path "src\pipeline_dados\data\sentinela.db")) {
             Write-Warn "Banco nao encontrado - rodando pipeline primeiro..."
             Push-Location src\pipeline_dados
-            python ingest_deter.py | Out-Null
+            python ingest_deter.py --fonte real | Out-Null
             Pop-Location
         }
 
@@ -139,7 +139,7 @@ switch ($Comando) {
 
         Write-Info "[1/4] Pipeline de dados..."
         Push-Location src\pipeline_dados
-        python ingest_deter.py --exportar-json
+        python ingest_deter.py --fonte real --exportar-json
         Pop-Location
 
         Write-Info "[2/4] Treinando modelo de audio (demo)..."

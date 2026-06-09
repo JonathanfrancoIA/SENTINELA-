@@ -73,3 +73,13 @@ tmp/
 temp/
 *.tmp
 *.bak
+
+# Vídeo da apresentação (fica no YouTube, não no repositório)
+*.mp4
+*.mov
+*.mkv
+*.avi
+
+# Documentos de planejamento (não fazem parte da entrega)
+/GS.pdf
+/ESTRUTURA-PDF-SENTINELA.md.pdf

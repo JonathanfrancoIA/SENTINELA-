@@ -331,7 +331,7 @@ def iniciar_api_local(porta: int = 5050):
         try:
             conn = sqlite3.connect(DB_PATH)
             df = pd.read_sql(
-                "SELECT * FROM alertas_fusao ORDER BY criado_em DESC LIMIT 50", conn
+                "SELECT * FROM alertas_fusao ORDER BY nivel_confianca DESC LIMIT 50", conn
             )
             conn.close()
             return jsonify(df.to_dict(orient="records"))

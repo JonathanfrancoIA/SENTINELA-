@@ -37,6 +37,12 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
+# Console do Windows às vezes usa cp1252 e quebra em caracteres como "→".
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 try:
     import paho.mqtt.client as mqtt
 except ImportError:
@@ -54,18 +60,17 @@ except Exception:
 def garantir_tabela(db_path: str):
     """Cria a tabela eventos_audio se ainda não existir (mesmo schema do ingest)."""
     conn = sqlite3.connect(db_path)
+    # Schema IDÊNTICO ao criado por ingest_deter.py (e lido pelo dashboard).
+    # Sem colunas extras — assinante e dashboard usam exatamente o mesmo formato.
     conn.execute("""
         CREATE TABLE IF NOT EXISTS eventos_audio (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            sensor_id       TEXT NOT NULL,
-            tipo_evento     TEXT NOT NULL,
-            probabilidade   REAL NOT NULL,
+            sensor_id       TEXT,
+            tipo_evento     TEXT,
+            probabilidade   REAL,
             lat             REAL,
             lon             REAL,
             timestamp_ms    INTEGER,
-            nivel_alerta    TEXT,
-            processado      INTEGER DEFAULT 0,
-            criado_em       TEXT DEFAULT CURRENT_TIMESTAMP
+            nivel_alerta    TEXT
         )
     """)
     conn.commit()
@@ -73,20 +78,30 @@ def garantir_tabela(db_path: str):
 
 
 def gravar_evento(db_path: str, dados: dict):
+    # O ESP32 (Wokwi) envia timestamp_ms = millis() desde o boot (número pequeno).
+    # Para o evento cair na hora certa do dashboard, usamos o tempo real atual
+    # quando o valor recebido não for um epoch-ms plausível.
+    ts = dados.get("timestamp_ms")
+    try:
+        ts = int(ts)
+    except (TypeError, ValueError):
+        ts = 0
+    if ts < 1_000_000_000_000:  # menor que ~2001 em ms → não é epoch real
+        ts = int(time.time() * 1000)
+
     conn = sqlite3.connect(db_path)
     conn.execute(
         """INSERT INTO eventos_audio
-           (sensor_id, tipo_evento, probabilidade, lat, lon, timestamp_ms, nivel_alerta, criado_em)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+           (sensor_id, tipo_evento, probabilidade, lat, lon, timestamp_ms, nivel_alerta)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
         (
             dados.get("sensor_id", "DESCONHECIDO"),
             dados.get("tipo", dados.get("tipo_evento", "EVENTO")),
             float(dados.get("probabilidade", 0) or 0),
             dados.get("lat"),
             dados.get("lon"),
-            dados.get("timestamp_ms"),
+            ts,
             dados.get("nivel_alerta"),
-            datetime.now().isoformat(timespec="seconds"),
         ),
     )
     conn.commit()
